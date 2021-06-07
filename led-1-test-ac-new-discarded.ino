@@ -1,6 +1,7 @@
 // Import required libraries
 #include "WiFi.h"
 #include "ESPAsyncWebServer.h"
+#include "AsyncTCP.h"
 #include "SPIFFS.h"
 #include "creds.h"
 
@@ -10,11 +11,19 @@ const int frontdoorsledPin = 2;
 const int backdoorsledPin = 4;
 const char* PARAM_INPUT_1 = "state";
 
-
 // Stores LED state
 int frontdoorsledState = LOW;
 int backdoorsledState = LOW;
 
+const int output = 4;
+const int output2 = 2;
+String sliderValue = "0";
+// setting PWM properties
+const int freq = 5000;
+const int ledChannel_bedroom = 0;
+const int ledChannel_lounge = 1;
+const int resolution = 8;
+const char* PARAM_INPUT = "value";
 
 // Create AsyncWebServer object on port 80
 AsyncWebServer server(80);
@@ -33,6 +42,9 @@ String processor(const String& var) {
     buttons += "<label class=\"switch ml-auto\"><input type=\"checkbox\" id=\"switch-light-7\" onchange=\"toggleCheckbox2(this)\"></label>";
     return buttons;
   }
+    if (var == "SLIDERVALUE"){
+    return sliderValue;
+  }
   return String();
 }
 
@@ -49,6 +61,17 @@ void setup() {
     Serial.println("An Error has occurred while mounting SPIFFS");
     return;
   }
+
+
+  // configure LED PWM functionalitites
+  ledcSetup(ledChannel_bedroom, freq, resolution);
+  // attach the channel to the GPIO to be controlled
+  ledcAttachPin(output, ledChannel_bedroom);
+  ledcAttachPin(output2, ledChannel_lounge);
+  ledcWrite(ledChannel_bedroom, sliderValue.toInt());
+  ledcWrite(ledChannel_lounge, sliderValue.toInt());
+
+  
   // Connect to Wi-Fi
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
@@ -57,6 +80,41 @@ void setup() {
   }
   // Print ESP32 Local IP Address
   Serial.println(WiFi.localIP());
+
+
+
+    // Send a GET request to <ESP_IP>/slider?value=<inputMessage>
+  server.on("/loungeslider", HTTP_GET, [] (AsyncWebServerRequest *request) {
+    String inputMessage;
+    // GET input1 value on <ESP_IP>/slider?value=<inputMessage>
+    if (request->hasParam(PARAM_INPUT)) {
+      inputMessage = request->getParam(PARAM_INPUT)->value();
+      sliderValue = inputMessage;
+      ledcWrite(ledChannel_lounge, sliderValue.toInt());
+    }
+    else {
+      inputMessage = "No message sent";
+    }
+    Serial.println(inputMessage);
+    request->send(200, "text/plain", "OK");
+  });
+
+
+      // Send a GET request to <ESP_IP>/slider?value=<inputMessage>
+  server.on("/bedroomslider", HTTP_GET, [] (AsyncWebServerRequest *request) {
+    String inputMessage;
+    // GET input1 value on <ESP_IP>/slider?value=<inputMessage>
+    if (request->hasParam(PARAM_INPUT)) {
+      inputMessage = request->getParam(PARAM_INPUT)->value();
+      sliderValue = inputMessage;
+      ledcWrite(ledChannel_bedroom, sliderValue.toInt());
+    }
+    else {
+      inputMessage = "No message sent";
+    }
+    Serial.println(inputMessage);
+    request->send(200, "text/plain", "OK");
+  });
 
 
 
