@@ -7,16 +7,20 @@
 
 
 // Set LED GPIO
-const int frontdoorsledPin = 2;
-const int backdoorsledPin = 4;
+const int frontdoorsledPin = 4;
+const int backdoorsledPin = 2;
 const char* PARAM_INPUT_1 = "state";
+
+const char* PARAM_INPUT_1_TIMER = "state";
+const char* PARAM_INPUT_2_TIMER = "value";
+const int output_timer = 21;
+String timerSliderValue = "10";
 
 // Stores LED state
 int frontdoorsledState = LOW;
 int backdoorsledState = LOW;
 
-const int output = 4;
-const int output2 = 2;
+const int output2 = 4;
 String sliderValue = "0";
 // setting PWM properties
 const int freq = 5000;
@@ -42,10 +46,30 @@ String processor(const String& var) {
     buttons += "<label class=\"switch ml-auto\"><input type=\"checkbox\" id=\"switch-light-7\" onchange=\"toggleCheckbox2(this)\"></label>";
     return buttons;
   }
-    if (var == "SLIDERVALUE"){
+  if (var == "SLIDERVALUE") {
     return sliderValue;
   }
+  if(var == "BUTTONPLACEHOLDER"){
+    String buttons = "";
+    String outputStateValue = outputState();
+    buttons+= "<label class=\"switch2\"><input type=\"checkbox\" onchange=\"toggleCheckbox_timer(this)\" id=\"output\" " + outputStateValue + "><span class=\"slider\"></span></label>";
+    return buttons;
+  }
+  if(var == "TIMERVALUE"){
+    return timerSliderValue;
+  }
   return String();
+}
+
+
+String outputState(){
+  if(digitalRead(output_timer)){
+    return "checked";
+  }
+  else {
+    return "";
+  }
+  return "";
 }
 
 
@@ -55,6 +79,9 @@ void setup() {
   Serial.begin(115200);
   pinMode(frontdoorsledPin, OUTPUT);
   pinMode(backdoorsledPin, OUTPUT);
+
+  pinMode(output_timer, OUTPUT);
+  digitalWrite(output_timer, LOW);
 
   // Initialize SPIFFS
   if (!SPIFFS.begin(true)) {
@@ -66,12 +93,10 @@ void setup() {
   // configure LED PWM functionalitites
   ledcSetup(ledChannel_bedroom, freq, resolution);
   // attach the channel to the GPIO to be controlled
-  ledcAttachPin(output, ledChannel_bedroom);
   ledcAttachPin(output2, ledChannel_lounge);
-  ledcWrite(ledChannel_bedroom, sliderValue.toInt());
   ledcWrite(ledChannel_lounge, sliderValue.toInt());
 
-  
+
   // Connect to Wi-Fi
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
@@ -83,31 +108,14 @@ void setup() {
 
 
 
-    // Send a GET request to <ESP_IP>/slider?value=<inputMessage>
-  server.on("/loungeslider", HTTP_GET, [] (AsyncWebServerRequest *request) {
+  // Send a GET request to <ESP_IP>/slider?value=<inputMessage>
+  server.on("/loungeslider", HTTP_GET, [] (AsyncWebServerRequest * request) {
     String inputMessage;
     // GET input1 value on <ESP_IP>/slider?value=<inputMessage>
     if (request->hasParam(PARAM_INPUT)) {
       inputMessage = request->getParam(PARAM_INPUT)->value();
       sliderValue = inputMessage;
       ledcWrite(ledChannel_lounge, sliderValue.toInt());
-    }
-    else {
-      inputMessage = "No message sent";
-    }
-    Serial.println(inputMessage);
-    request->send(200, "text/plain", "OK");
-  });
-
-
-      // Send a GET request to <ESP_IP>/slider?value=<inputMessage>
-  server.on("/bedroomslider", HTTP_GET, [] (AsyncWebServerRequest *request) {
-    String inputMessage;
-    // GET input1 value on <ESP_IP>/slider?value=<inputMessage>
-    if (request->hasParam(PARAM_INPUT)) {
-      inputMessage = request->getParam(PARAM_INPUT)->value();
-      sliderValue = inputMessage;
-      ledcWrite(ledChannel_bedroom, sliderValue.toInt());
     }
     else {
       inputMessage = "No message sent";
@@ -130,7 +138,7 @@ void setup() {
     request->send(200, "text/plain", "OK");
   });
 
-    // Send a GET request to <ESP_IP>/update?state=<inputMessage>
+  // Send a GET request to <ESP_IP>/update?state=<inputMessage>
   server.on("/updatebackdoors", HTTP_GET, [] (AsyncWebServerRequest * request) {
     String inputParam;
 
@@ -139,6 +147,36 @@ void setup() {
       inputParam = PARAM_INPUT_1;
       backdoorsledState = !backdoorsledState;
     }
+    request->send(200, "text/plain", "OK");
+  });
+
+  // Send a GET request to <ESP_IP>/update?state=<inputMessage>
+  server.on("/update", HTTP_GET, [] (AsyncWebServerRequest *request) {
+    String inputMessage;
+    // GET input1 value on <ESP_IP>/update?state=<inputMessage>
+    if (request->hasParam(PARAM_INPUT_1_TIMER)) {
+      inputMessage = request->getParam(PARAM_INPUT_1_TIMER)->value();
+      digitalWrite(output_timer, inputMessage.toInt());
+    }
+    else {
+      inputMessage = "No message sent";
+    }
+    Serial.println(inputMessage);
+    request->send(200, "text/plain", "OK");
+  });
+
+  // Send a GET request to <ESP_IP>/slider?value=<inputMessage>
+  server.on("/slider", HTTP_GET, [] (AsyncWebServerRequest *request) {
+    String inputMessage;
+    // GET input1 value on <ESP_IP>/slider?value=<inputMessage>
+    if (request->hasParam(PARAM_INPUT_2_TIMER)) {
+      inputMessage = request->getParam(PARAM_INPUT_2_TIMER)->value();
+      timerSliderValue = inputMessage;
+    }
+    else {
+      inputMessage = "No message sent";
+    }
+    Serial.println(inputMessage);
     request->send(200, "text/plain", "OK");
   });
 

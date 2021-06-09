@@ -9,6 +9,52 @@
   <meta http-equiv="content-type" content="text/html;charset=UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
+
+  <style>
+    .switch2 {position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;} 
+    .switch2 input {opacity: 0;
+  width: 0;
+  height: 0;}
+    .slider {position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 34px;
+  background-color: rgba(15,156,230,.25);
+  -webkit-transition: .4s;
+  transition: .4s;}
+    .slider:before {position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  border-radius: 50%;
+  background-color: white;
+  -webkit-transition: .4s;
+  transition: .4s;}
+    input:checked+.slider {background-color: rgba(15,156,230,.45);}
+    input:focus + .slider {
+  box-shadow: 0 0 1px #2196F3;
+}
+
+input:checked + .slider:before {
+  -webkit-transform: translateX(26px);
+  -ms-transform: translateX(26px);
+  transform: translateX(26px);
+}
+
+    .slider2 { -webkit-appearance: none; margin: 14px; width: 300px; height: 20px; background: #ccc;
+      outline: none; -webkit-transition: .2s; transition: opacity .2s;}
+    .slider2::-webkit-slider-thumb {-webkit-appearance: none; appearance: none; width: 30px; height: 30px; background: #2f4468; cursor: pointer;}
+    .slider2::-moz-range-thumb { width: 30px; height: 30px; background: #2f4468; cursor: pointer; } 
+  </style>
+
 </head>
 
 <body>
@@ -27,55 +73,55 @@
   <div id="wrapper" class="hidden">
     <!-- Top navbar START -->
     <nav class="navbar navbar-expand fixed-top d-flex flex-row justify-content-start">
-			<div class="d-none d-lg-block">
-				<form>
-					<div id="menu-minifier">
-						<label>
-							<svg width="32" height="32" viewBox="0 0 32 32">
-								<rect x="2" y="8" width="4" height="3" class="menu-dots"></rect>
-								<rect x="2" y="15" width="4" height="3" class="menu-dots"></rect>
-								<rect x="2" y="22" width="4" height="3" class="menu-dots"></rect>
-								<rect x="8" y="8" width="21" height="3" class="menu-lines"></rect>
-								<rect x="8" y="15" width="21" height="3" class="menu-lines"></rect>
-								<rect x="8" y="22" width="21" height="3" class="menu-lines"></rect>
-							</svg>
-							<input id="minifier" type="checkbox"> 
-						</label>
-						<div class="info-holder info-rb">
-							<div data-toggle="popover-all" data-content="Checkbox element using localStorage to remember the last status." data-original-title="Side menu narrowing" data-placement="right"></div>
-						</div>
-					</div>
-				</form>
-			</div>
-			<a class="navbar-brand px-lg-3 px-1 mr-0" href="#">Welcome To Smart Home Dashboard</a>
-			<div class="ml-auto">
-				<div class="navbar-nav flex-row navbar-icons">
-					<div class="nav-item">
-						<button id="alerts-toggler" class="btn btn-link nav-link" title="Alerts" type="button" data-alerts="3" data-toggle="modal" data-target="#alertsModal">
-							<svg class="icon-sprite">
-								<use xlink:href="icons-sprite.svg#alert"/>
-								<svg class="text-danger"><use class="icon-dot" xlink:href="icons-sprite.svg#icon-dot"/></svg>
-							</svg>
-						</button>
-					</div>
-					<div id="user-menu" class="nav-item dropdown">
-						<button class="btn btn-link nav-link dropdown-toggle" title="User" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-							<svg class="icon-sprite"><use xlink:href="icons-sprite.svg#user"/></svg>
-						</button>
-						<div class="dropdown-menu dropdown-menu-right">
-							<a class="dropdown-item" href="profile.html">Profile</a>
-							<div class="dropdown-divider"></div>
-							<a class="dropdown-item" href="login.html">Logout</a>
-						</div>
-					</div>
-					<div class="nav-item d-lg-none">
-						<button id="sidebar-toggler" type="button" class="btn btn-link nav-link" data-toggle="offcanvas">
-						  <svg class="icon-sprite"><use xlink:href="icons-sprite.svg#menu"/></svg>
-						</button>
-					</div>
-				</div>
-			</div>
-		</nav>
+      <div class="d-none d-lg-block">
+        <form>
+          <div id="menu-minifier">
+            <label>
+              <svg width="32" height="32" viewBox="0 0 32 32">
+                <rect x="2" y="8" width="4" height="3" class="menu-dots"></rect>
+                <rect x="2" y="15" width="4" height="3" class="menu-dots"></rect>
+                <rect x="2" y="22" width="4" height="3" class="menu-dots"></rect>
+                <rect x="8" y="8" width="21" height="3" class="menu-lines"></rect>
+                <rect x="8" y="15" width="21" height="3" class="menu-lines"></rect>
+                <rect x="8" y="22" width="21" height="3" class="menu-lines"></rect>
+              </svg>
+              <input id="minifier" type="checkbox"> 
+            </label>
+            <div class="info-holder info-rb">
+              <div data-toggle="popover-all" data-content="Checkbox element using localStorage to remember the last status." data-original-title="Side menu narrowing" data-placement="right"></div>
+            </div>
+          </div>
+        </form>
+      </div>
+      <a class="navbar-brand px-lg-3 px-1 mr-0" href="#">Welcome To Smart Home Dashboard</a>
+      <div class="ml-auto">
+        <div class="navbar-nav flex-row navbar-icons">
+          <div class="nav-item">
+            <button id="alerts-toggler" class="btn btn-link nav-link" title="Alerts" type="button" data-alerts="3" data-toggle="modal" data-target="#alertsModal">
+              <svg class="icon-sprite">
+                <use xlink:href="icons-sprite.svg#alert"/>
+                <svg class="text-danger"><use class="icon-dot" xlink:href="icons-sprite.svg#icon-dot"/></svg>
+              </svg>
+            </button>
+          </div>
+          <div id="user-menu" class="nav-item dropdown">
+            <button class="btn btn-link nav-link dropdown-toggle" title="User" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+              <svg class="icon-sprite"><use xlink:href="icons-sprite.svg#user"/></svg>
+            </button>
+            <div class="dropdown-menu dropdown-menu-right">
+              <a class="dropdown-item" href="profile.html">Profile</a>
+              <div class="dropdown-divider"></div>
+              <a class="dropdown-item" href="login.html">Logout</a>
+            </div>
+          </div>
+          <div class="nav-item d-lg-none">
+            <button id="sidebar-toggler" type="button" class="btn btn-link nav-link" data-toggle="offcanvas">
+              <svg class="icon-sprite"><use xlink:href="icons-sprite.svg#menu"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </nav>
     <!-- Top navbar END -->
     <!-- wrapper-offcanvas START -->
     <div class="wrapper-offcanvas">
@@ -102,7 +148,7 @@
             </li>
             <li class="nav-item">
               <a class="nav-link" href="climate.html">
-				<svg class="icon-sprite"><use xlink:href="icons-sprite.svg#thermometer"/></svg> <span>Climate</span>
+        <svg class="icon-sprite"><use xlink:href="icons-sprite.svg#thermometer"/></svg> <span>Climate</span>
               </a>
             </li>
 
@@ -124,33 +170,54 @@
                       <svg class="icon-sprite icon-1x">
                               <use xlink:href="icons-sprite.svg#fan"/>
                             </svg>
-                      <h5>Fan</h5>
-                      <label class="switch ml-auto checked">
-                              <input type="checkbox" id="fan-bathroom" checked>
-                            </label>
+                      <h5>Fan</h5>                    
                     </li>
                   </ul>
                   <!-- FAN Bathroom switch END -->
-                  <div class="only-if-active">
+                  
                     <hr class="my-0">
                     <ul class="list-group borderless px-1">
                       <li class="list-group-item pb-0">
-                        <p class="specs">Connection</p>
-                        <p class="ml-auto mb-0 text-success">OK</p>
+                        <p class="specs">Switch</p>
+                        <p class="ml-auto mb-0 text-success">%BUTTONPLACEHOLDER%</p>
                       </li>
                     </ul>
                     <!-- Speed control - range slider START -->
                     <ul class="list-group borderless px-1" data-rangeslider="fan-02">
                       <li class="list-group-item">
-                        <p class="specs">Speed</p>
-                        <p class="ml-auto mb-0"><span class="range-output">0</span></p>
+                        <p class="specs">Time</p>
+                        <p class="ml-auto mb-0"><span id="timerValue">&nbsp;%TIMERVALUE%</span> Seconds</p>
                       </li>
                       <li class="list-group-item pt-0 pb-4">
-                        <input id="fan-02" class="fanspeed" type="range" min="0" max="10" value="0">
+                        <input type="range" onchange="updateSliderTimer(this)" id="range-output" min="1" max="20" value="%TIMERVALUE%" step="1" class="slider2">
+  
+<script>
+function toggleCheckbox_timer(element) {
+  var sliderValue = document.getElementById("range-output").value;
+  var xhr = new XMLHttpRequest();
+  if(element.checked){ xhr.open("GET", "/update?state=1", true); xhr.send();
+    var count = sliderValue, timer = setInterval(function() {
+      count--; document.getElementById("timerValue").innerHTML = count;
+      if(count == 0){ clearInterval(timer); document.getElementById("timerValue").innerHTML = document.getElementById("range-output").value; }
+    }, 1000);
+    sliderValue = sliderValue*1000;
+    setTimeout(function(){ xhr.open("GET", "/update?state=0", true); 
+    document.getElementById(element.id).checked = false; xhr.send(); }, sliderValue);
+  }
+}
+function updateSliderTimer(element) {
+  var sliderValue = document.getElementById("range-output").value;
+  document.getElementById("timerValue").innerHTML = sliderValue;
+  var xhr = new XMLHttpRequest();
+  xhr.open("GET", "/slider?value="+sliderValue, true);
+  xhr.send();
+}
+</script>
+
                       </li>
                     </ul>
                     <!-- Speed control - range slider END -->
-                  </div>
+                 
                 </div>
                 <!-- FAN Bathroom END -->
 
