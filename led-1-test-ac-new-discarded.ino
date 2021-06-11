@@ -1,69 +1,76 @@
 // Import required libraries
-#include "WiFi.h"
-#include "ESPAsyncWebServer.h"
-#include "AsyncTCP.h"
+
+#include <Arduino.h>
+#include <WiFi.h>
+#include <AsyncTCP.h>
+#include <ESPAsyncWebServer.h>
+#include <ESP32Servo.h>
 #include "SPIFFS.h"
 #include "creds.h"
 
+int pos = 0;
+Servo myservo;
 
 // Set LED GPIO
-const int frontdoorsledPin = 4;
-const int backdoorsledPin = 2;
+const int frontdoorsledPin = 2;
+const int backdoorsledPin = 23;
 const char* PARAM_INPUT_1 = "state";
 
-const char* PARAM_INPUT_1_TIMER = "state";
-const char* PARAM_INPUT_2_TIMER = "value";
-const int output_timer = 21;
-String timerSliderValue = "10";
-
-// Stores LED state
 int frontdoorsledState = LOW;
 int backdoorsledState = LOW;
 
-const int output2 = 4;
-String sliderValue = "0";
-// setting PWM properties
-const int freq = 5000;
-const int ledChannel_bedroom = 0;
-const int ledChannel_lounge = 1;
-const int resolution = 8;
-const char* PARAM_INPUT = "value";
 
-// Create AsyncWebServer object on port 80
+
+const char* PARAM_INPUT_1_TIMER = "state";
+const char* PARAM_INPUT_2_TIMER = "value";
+String timerSliderValue = "10";
+String sliderValue = "0";
+
+const int output_timer = 21;
+const int output_timer2 = 19;
+
+
+
 AsyncWebServer server(80);
-// Replaces placeholder with button section in web page
 String processor(const String& var) {
   //Serial.println(var);
   if (var == "frontdoors") {
     String buttons = "";
-
     buttons += "<label class=\"switch ml-auto\"><input type=\"checkbox\" id=\"switch-light-6\" onchange=\"toggleCheckbox(this)\"></label>";
     return buttons;
   }
   if (var == "backdoors") {
     String buttons = "";
-
     buttons += "<label class=\"switch ml-auto\"><input type=\"checkbox\" id=\"switch-light-7\" onchange=\"toggleCheckbox2(this)\"></label>";
     return buttons;
   }
-  if (var == "SLIDERVALUE") {
-    return sliderValue;
-  }
-  if(var == "BUTTONPLACEHOLDER"){
+  if (var == "OPENPLACEHOLDER") {
     String buttons = "";
-    String outputStateValue = outputState();
-    buttons+= "<label class=\"switch2\"><input type=\"checkbox\" onchange=\"toggleCheckbox_timer(this)\" id=\"output\" " + outputStateValue + "><span class=\"slider\"></span></label>";
+    buttons += "<button data-action=\"open\" type=\"button\" class=\"btn btn-secondary doors-control\" onclick=\"toggleOpen()\">Open</button>";
     return buttons;
   }
-  if(var == "TIMERVALUE"){
+  if (var == "CLOSEPLACEHOLDER") {
+    String buttons = "";
+    buttons += "<button data-action=\"close\" type=\"button\" class=\"btn btn-secondary doors-control\" onclick=\"toggleClose()\">Close</button>";
+    return buttons;
+  }
+   if (var == "SLIDERVALUE") {
+    return sliderValue;
+  }
+  if (var == "TIMERVALUE") {
     return timerSliderValue;
+  }
+  if (var == "BUTTONPLACEHOLDER") {
+    String buttons = "";
+    String outputStateValue = outputState();
+    buttons += "<label class=\"switch2\"><input type=\"checkbox\" onchange=\"toggleCheckbox_timer(this)\" id=\"output\" " + outputStateValue + "><span class=\"slider\"></span></label>";
+    return buttons;
   }
   return String();
 }
 
-
-String outputState(){
-  if(digitalRead(output_timer)){
+String outputState() {
+  if (digitalRead(output_timer)) {
     return "checked";
   }
   else {
@@ -74,28 +81,26 @@ String outputState(){
 
 
 
+
 void setup() {
   // Serial port for debugging purposes
   Serial.begin(115200);
+
+  myservo.attach(13);
+
   pinMode(frontdoorsledPin, OUTPUT);
   pinMode(backdoorsledPin, OUTPUT);
 
   pinMode(output_timer, OUTPUT);
+  pinMode(output_timer2, OUTPUT);
   digitalWrite(output_timer, LOW);
+
 
   // Initialize SPIFFS
   if (!SPIFFS.begin(true)) {
     Serial.println("An Error has occurred while mounting SPIFFS");
     return;
   }
-
-
-  // configure LED PWM functionalitites
-  ledcSetup(ledChannel_bedroom, freq, resolution);
-  // attach the channel to the GPIO to be controlled
-  ledcAttachPin(output2, ledChannel_lounge);
-  ledcWrite(ledChannel_lounge, sliderValue.toInt());
-
 
   // Connect to Wi-Fi
   WiFi.begin(ssid, password);
@@ -108,21 +113,37 @@ void setup() {
 
 
 
-  // Send a GET request to <ESP_IP>/slider?value=<inputMessage>
-  server.on("/loungeslider", HTTP_GET, [] (AsyncWebServerRequest * request) {
-    String inputMessage;
-    // GET input1 value on <ESP_IP>/slider?value=<inputMessage>
-    if (request->hasParam(PARAM_INPUT)) {
-      inputMessage = request->getParam(PARAM_INPUT)->value();
-      sliderValue = inputMessage;
-      ledcWrite(ledChannel_lounge, sliderValue.toInt());
+
+  server.on("/updateopen", HTTP_GET, [](AsyncWebServerRequest * request) {
+
+    for (pos = 0; pos <= 150; pos += 5) { // goes from 0 degrees to 180 degrees
+      // in steps of 1 degree
+      myservo.write(pos);    // tell servo to go to position in variable 'pos'
+      delay(150);             // waits 15ms for the servo to reach the position
     }
-    else {
-      inputMessage = "No message sent";
-    }
-    Serial.println(inputMessage);
+
+    // Add the following to send an HTTP response back to the client
     request->send(200, "text/plain", "OK");
   });
+
+  server.on("/updateclose", HTTP_GET, [](AsyncWebServerRequest * request) {
+
+    for (pos = 150; pos >= 0; pos -= 5) { // goes from 180 degrees to 0 degrees
+      myservo.write(pos);    // tell servo to go to position in variable 'pos'
+      delay(150);             // waits 15ms for the servo to reach the position
+    }
+
+    // Add the following to send an HTTP response back to the client
+    request->send(200, "text/plain", "OK");
+  });
+
+
+
+
+
+
+
+
 
 
 
@@ -137,7 +158,7 @@ void setup() {
     }
     request->send(200, "text/plain", "OK");
   });
-
+  
   // Send a GET request to <ESP_IP>/update?state=<inputMessage>
   server.on("/updatebackdoors", HTTP_GET, [] (AsyncWebServerRequest * request) {
     String inputParam;
@@ -150,8 +171,13 @@ void setup() {
     request->send(200, "text/plain", "OK");
   });
 
-  // Send a GET request to <ESP_IP>/update?state=<inputMessage>
-  server.on("/update", HTTP_GET, [] (AsyncWebServerRequest *request) {
+
+
+
+
+
+// Send a GET request to <ESP_IP>/update?state=<inputMessage>
+  server.on("/update", HTTP_GET, [] (AsyncWebServerRequest * request) {
     String inputMessage;
     // GET input1 value on <ESP_IP>/update?state=<inputMessage>
     if (request->hasParam(PARAM_INPUT_1_TIMER)) {
@@ -166,7 +192,7 @@ void setup() {
   });
 
   // Send a GET request to <ESP_IP>/slider?value=<inputMessage>
-  server.on("/slider", HTTP_GET, [] (AsyncWebServerRequest *request) {
+  server.on("/slider", HTTP_GET, [] (AsyncWebServerRequest * request) {
     String inputMessage;
     // GET input1 value on <ESP_IP>/slider?value=<inputMessage>
     if (request->hasParam(PARAM_INPUT_2_TIMER)) {
@@ -179,6 +205,10 @@ void setup() {
     Serial.println(inputMessage);
     request->send(200, "text/plain", "OK");
   });
+
+
+  
+
 
 
   // Route for index
@@ -257,8 +287,7 @@ void setup() {
 }
 
 void loop() {
-
   digitalWrite(frontdoorsledPin, frontdoorsledState);
   digitalWrite(backdoorsledPin, backdoorsledState);
-
+  digitalWrite(output_timer2, LOW);
 }
