@@ -8,6 +8,17 @@
 #include "SPIFFS.h"
 #include "creds.h"
 
+#define timeSeconds 3
+
+const int buzzer = 18;
+const int motionSensor = 27;
+int buzzerState = LOW;
+
+// Timer: Auxiliary variables
+unsigned long now = millis();
+unsigned long lastTrigger = 0;
+boolean startTimer = false;
+
 int pos = 0;
 Servo myservo;
 
@@ -15,7 +26,6 @@ Servo myservo;
 const int frontdoorsledPin = 2;
 const int backdoorsledPin = 23;
 const char* PARAM_INPUT_1 = "state";
-
 int frontdoorsledState = LOW;
 int backdoorsledState = LOW;
 
@@ -24,8 +34,6 @@ int backdoorsledState = LOW;
 const char* PARAM_INPUT_1_TIMER = "state";
 const char* PARAM_INPUT_2_TIMER = "value";
 String timerSliderValue = "10";
-String sliderValue = "0";
-
 const int output_timer = 21;
 const int output_timer2 = 19;
 
@@ -34,28 +42,30 @@ const int output_timer2 = 19;
 AsyncWebServer server(80);
 String processor(const String& var) {
   //Serial.println(var);
-  if (var == "frontdoors") {
+  if (var == "FRONTDOOR") {
     String buttons = "";
-    buttons += "<label class=\"switch ml-auto\"><input type=\"checkbox\" id=\"switch-light-6\" onchange=\"toggleCheckbox(this)\"></label>";
+    buttons += "<label class=\"switch ml-auto\"><input type=\"checkbox\" id=\"switch-light-6\" onchange=\"toggleFrontdoor(this)\"></label>";
     return buttons;
   }
-  if (var == "backdoors") {
+  if (var == "BACKDOOR") {
     String buttons = "";
-    buttons += "<label class=\"switch ml-auto\"><input type=\"checkbox\" id=\"switch-light-7\" onchange=\"toggleCheckbox2(this)\"></label>";
+    buttons += "<label class=\"switch ml-auto\"><input type=\"checkbox\" id=\"switch-light-7\" onchange=\"toggleBackdoor(this)\"></label>";
+    return buttons;
+  }
+  if (var == "LOUNGEBUTTON") {
+    String buttons = "";
+    buttons += "<label class=\"switch ml-auto\"><input type=\"checkbox\" id=\"switch-light-2\" onchange=\"toggleLounge(this)\"></label>";
     return buttons;
   }
   if (var == "OPENPLACEHOLDER") {
     String buttons = "";
-    buttons += "<button data-action=\"open\" type=\"button\" class=\"btn btn-secondary doors-control\" onclick=\"toggleOpen()\">Open</button>";
+    buttons += "<button data-action=\"open\" type=\"button\" class=\"btn btn-secondary doors-control\" onclick=\"toggleOpen(this)\">Open</button>";
     return buttons;
   }
   if (var == "CLOSEPLACEHOLDER") {
     String buttons = "";
-    buttons += "<button data-action=\"close\" type=\"button\" class=\"btn btn-secondary doors-control\" onclick=\"toggleClose()\">Close</button>";
+    buttons += "<button data-action=\"close\" type=\"button\" class=\"btn btn-secondary doors-control\" onclick=\"toggleClose(this)\">Close</button>";
     return buttons;
-  }
-   if (var == "SLIDERVALUE") {
-    return sliderValue;
   }
   if (var == "TIMERVALUE") {
     return timerSliderValue;
@@ -64,6 +74,11 @@ String processor(const String& var) {
     String buttons = "";
     String outputStateValue = outputState();
     buttons += "<label class=\"switch2\"><input type=\"checkbox\" onchange=\"toggleCheckbox_timer(this)\" id=\"output\" " + outputStateValue + "><span class=\"slider\"></span></label>";
+    return buttons;
+  }
+  if (var == "SECURITY") {
+    String buttons = "";
+    buttons += "<label class=\"switch ml-auto\"><input type=\"checkbox\" id=\"switch-house-lock\" onchange=\"toggleSecurity(this)\"></label>";
     return buttons;
   }
   return String();
@@ -81,6 +96,16 @@ String outputState() {
 
 
 
+// Checks if motion was detected, sets buzzer HIGH and starts a timer
+void IRAM_ATTR detectsMovement() {
+  Serial.println("MOTION DETECTED!!!");
+  digitalWrite(buzzer, buzzerState);
+  startTimer = true;
+  lastTrigger = millis();
+}
+
+
+
 
 void setup() {
   // Serial port for debugging purposes
@@ -94,6 +119,17 @@ void setup() {
   pinMode(output_timer, OUTPUT);
   pinMode(output_timer2, OUTPUT);
   digitalWrite(output_timer, LOW);
+
+
+   // PIR Motion Sensor mode INPUT_PULLUP
+  pinMode(motionSensor, INPUT_PULLUP);
+  // Set motionSensor pin as interrupt, assign interrupt function and set RISING mode
+  attachInterrupt(digitalPinToInterrupt(motionSensor), detectsMovement, RISING);
+
+  // Set buzzer to LOW
+  pinMode(buzzer, OUTPUT);
+  digitalWrite(buzzer, LOW);
+
 
 
   // Initialize SPIFFS
@@ -207,6 +243,27 @@ void setup() {
   });
 
 
+
+
+
+
+
+// Send a GET request to <ESP_IP>/update?state=<inputMessage>
+  server.on("/updatesecurity", HTTP_GET, [] (AsyncWebServerRequest * request) {
+    String inputParam;
+
+    // GET input1 value on <ESP_IP>/update?state=<inputMessage>
+    if (request->hasParam(PARAM_INPUT_1)) {
+      inputParam = PARAM_INPUT_1;
+      buzzerState = !buzzerState;
+      digitalWrite(buzzer, LOW);
+    }
+    request->send(200, "text/plain", "OK");
+  });
+
+  
+
+
   
 
 
@@ -290,4 +347,14 @@ void loop() {
   digitalWrite(frontdoorsledPin, frontdoorsledState);
   digitalWrite(backdoorsledPin, backdoorsledState);
   digitalWrite(output_timer2, LOW);
+
+  // Current time
+  now = millis();
+  // Turn off the buzzer after the number of seconds defined in the timeSeconds variable
+  if(startTimer && (now - lastTrigger > (timeSeconds*1000))) 
+  {
+    Serial.println("Motion stopped...");
+    digitalWrite(buzzer, buzzerState);
+    startTimer = false;
+  }
 }

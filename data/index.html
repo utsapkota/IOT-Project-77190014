@@ -160,9 +160,15 @@
                       <h4>Security System</h4>
                       <p class="status"><span class="arm"></span></p>
                     </div>
-                    <label class="switch ml-auto">
-                      <input type="checkbox" id="switch-house-lock">
-                    </label>
+                    %SECURITY%
+                    <script>function toggleSecurity(element) {
+  var xhr = new XMLHttpRequest();
+  if(element.checked){ xhr.open("GET", "/updatesecurity?state=1", true); }
+  else { xhr.open("GET", "/updatesecurity?state=0", true); }
+  xhr.send();
+}
+</script>
+
                   </div>
                 </div>
                 <!-- Security system END -->
@@ -220,8 +226,8 @@
                       <use xlink:href="/icons-sprite.svg#bulb-eco"/>
                     </svg>
                     <h5>Front Door</h5>
-                    %frontdoors%
-                    <script>function toggleCheckbox(element) {
+                    %FRONTDOOR%
+                    <script>function toggleFrontdoor(element) {
   var xhr = new XMLHttpRequest();
   if(element.checked){ xhr.open("GET", "/updatefrontdoors?state=1", true); }
   else { xhr.open("GET", "/updatefrontdoors?state=0", true); }
@@ -238,8 +244,8 @@
                       <use xlink:href="/icons-sprite.svg#bulb-eco"/>
                     </svg>
                     <h5>Back Door</h5>
-                    %backdoors%
-                    <script>function toggleCheckbox2(element) {
+                    %BACKDOOR%
+                    <script>function toggleBackdoor(element) {
   var xhr = new XMLHttpRequest();
   if(element.checked){ xhr.open("GET", "/updatebackdoors?state=1", true); }
   else { xhr.open("GET", "/updatebackdoors?state=0", true); }
