@@ -6,9 +6,23 @@
 #include <ESPAsyncWebServer.h>
 #include <ESP32Servo.h>
 #include "SPIFFS.h"
+#include "ESP32_MailClient.h"
 #include "creds.h"
 
 #define timeSeconds 3
+#define emailSenderAccount    "utsav17fun@gmail.com"    // Sender email address
+#define emailSenderPassword   "uSAP199742"            // Sender email password
+#define smtpServer            "smtp.gmail.com"
+#define smtpServerPort        465
+#define emailSubject          "ALERT! Gas Leak Detected"   // Email subject
+
+String inputMessage = "Email Recipient";   //Reciepent email alert.
+String enableEmailChecked = "checked";
+String inputMessage2 = "true";
+
+// Default Threshold Value
+String inputMessage3 = "40";                    // Default gas_value
+String lastgaslevel;
 
 const int buzzer = 18;
 const int motionSensor = 27;
@@ -36,6 +50,8 @@ const char* PARAM_INPUT_2_TIMER = "value";
 String timerSliderValue = "10";
 const int output_timer = 21;
 const int output_timer2 = 19;
+
+
 
 
 
@@ -81,6 +97,22 @@ String processor(const String& var) {
     buttons += "<label class=\"switch ml-auto\"><input type=\"checkbox\" id=\"switch-house-lock\" onchange=\"toggleSecurity(this)\"></label>";
     return buttons;
   }
+  if (var == "GASVALUE")
+  {
+    return lastgaslevel;
+  }
+  if (var == "EMAIL_INPUT")
+  {
+    return inputMessage;
+  }
+  if (var == "ENABLE_EMAIL")
+  {
+    return enableEmailChecked;
+  }
+  if (var == "THRESHOLD")
+  {
+    return inputMessage3;
+  }
   return String();
 }
 
@@ -96,6 +128,28 @@ String outputState() {
 
 
 
+
+
+// Flag variable to keep track if email notification was sent or not
+bool emailSent = false;
+const char* PARAM_INPUT_1_EMAIL = "email_input";
+const char* PARAM_INPUT_2_EMAIL = "enable_email_input";
+const char* PARAM_INPUT_3_EMAIL = "threshold_input";
+
+// Interval between sensor readings.
+unsigned long previousMillis = 0;
+const long interval = 5000;
+
+SMTPData smtpData;
+
+
+
+void notFound(AsyncWebServerRequest *request)
+{
+  request->send(404, "text/plain", "Not found");
+}
+
+
 // Checks if motion was detected, sets buzzer HIGH and starts a timer
 void IRAM_ATTR detectsMovement() {
   Serial.println("MOTION DETECTED!!!");
@@ -103,8 +157,6 @@ void IRAM_ATTR detectsMovement() {
   startTimer = true;
   lastTrigger = millis();
 }
-
-
 
 
 void setup() {
@@ -121,7 +173,7 @@ void setup() {
   digitalWrite(output_timer, LOW);
 
 
-   // PIR Motion Sensor mode INPUT_PULLUP
+  // PIR Motion Sensor mode INPUT_PULLUP
   pinMode(motionSensor, INPUT_PULLUP);
   // Set motionSensor pin as interrupt, assign interrupt function and set RISING mode
   attachInterrupt(digitalPinToInterrupt(motionSensor), detectsMovement, RISING);
@@ -194,7 +246,7 @@ void setup() {
     }
     request->send(200, "text/plain", "OK");
   });
-  
+
   // Send a GET request to <ESP_IP>/update?state=<inputMessage>
   server.on("/updatebackdoors", HTTP_GET, [] (AsyncWebServerRequest * request) {
     String inputParam;
@@ -212,7 +264,7 @@ void setup() {
 
 
 
-// Send a GET request to <ESP_IP>/update?state=<inputMessage>
+  // Send a GET request to <ESP_IP>/update?state=<inputMessage>
   server.on("/update", HTTP_GET, [] (AsyncWebServerRequest * request) {
     String inputMessage;
     // GET input1 value on <ESP_IP>/update?state=<inputMessage>
@@ -248,7 +300,7 @@ void setup() {
 
 
 
-// Send a GET request to <ESP_IP>/update?state=<inputMessage>
+  // Send a GET request to <ESP_IP>/update?state=<inputMessage>
   server.on("/updatesecurity", HTTP_GET, [] (AsyncWebServerRequest * request) {
     String inputParam;
 
@@ -261,10 +313,46 @@ void setup() {
     request->send(200, "text/plain", "OK");
   });
 
-  
 
 
-  
+
+
+
+
+
+  // Receive an HTTP GET request at <ESP_IP>/get?email_input=<inputMessage>&enable_email_input=<inputMessage2>&threshold_input=<inputMessage3>
+  server.on("/get", HTTP_GET, [] (AsyncWebServerRequest * request) {
+    // GET email_input value on <ESP_IP>/get?email_input=<inputMessage>
+    if (request->hasParam(PARAM_INPUT_1_EMAIL)) {
+      inputMessage = request->getParam(PARAM_INPUT_1_EMAIL)->value();
+      // GET enable_email_input value on <ESP_IP>/get?enable_email_input=<inputMessage2>
+      if (request->hasParam(PARAM_INPUT_2_EMAIL)) {
+        inputMessage2 = request->getParam(PARAM_INPUT_2_EMAIL)->value();
+        enableEmailChecked = "checked";
+      }
+      else
+      {
+        inputMessage2 = "false";
+        enableEmailChecked = "";
+      }
+      // GET threshold_input value on <ESP_IP>/get?threshold_input=<inputMessage3>
+      if (request->hasParam(PARAM_INPUT_3_EMAIL)) {
+        inputMessage3 = request->getParam(PARAM_INPUT_3_EMAIL)->value();
+      }
+    }
+    else {
+      inputMessage = "No message sent";
+    }
+    Serial.println(inputMessage);
+    Serial.println(inputMessage2);
+    Serial.println(inputMessage3);
+    request->send(SPIFFS, "/appliances.html", String(), false, processor);
+  });
+
+
+
+
+
 
 
 
@@ -339,6 +427,7 @@ void setup() {
   });
 
 
+  server.onNotFound(notFound);
   // Start server
   server.begin();
 }
@@ -351,10 +440,100 @@ void loop() {
   // Current time
   now = millis();
   // Turn off the buzzer after the number of seconds defined in the timeSeconds variable
-  if(startTimer && (now - lastTrigger > (timeSeconds*1000))) 
+  if (startTimer && (now - lastTrigger > (timeSeconds * 1000)))
   {
     Serial.println("Motion stopped...");
     digitalWrite(buzzer, buzzerState);
     startTimer = false;
+  }
+
+
+
+
+
+  unsigned long currentMillis = millis();
+  if (currentMillis - previousMillis >= interval) {
+    previousMillis = currentMillis;
+
+    float gas_analog_value = analogRead(35);
+    float gas_value = ((gas_analog_value / 1023) * 100);
+    Serial.print(gas_analog_value);
+    Serial.print(", ");
+    Serial.println(gas_value);
+
+    lastgaslevel = String(gas_value);
+
+    // Check if gas_value is above threshold and if it needs to send the Email alert
+    if (gas_value > inputMessage3.toFloat() && inputMessage2 == "true" && !emailSent) {
+      String emailMessage = String("Gas Level above threshold. Current Gas Level: ") + String(gas_value);
+      if (sendEmailNotification(emailMessage)) {
+        Serial.println(emailMessage);
+        emailSent = true;
+      }
+      else {
+        Serial.println("Email failed to send");
+      }
+    }
+    // Check if gas_value is below threshold and if it needs to send the Email alert
+    else if ((gas_value < inputMessage3.toFloat()) && inputMessage2 == "true" && emailSent)
+    {
+      String emailMessage = String("Gas Level below threshold. Current Gas Level: ") + String(gas_value);
+      if (sendEmailNotification(emailMessage))
+      {
+        Serial.println(emailMessage);
+        emailSent = false;
+      }
+      else {
+        Serial.println("Email failed to send");
+      }
+    }
+  }
+}
+
+
+
+
+
+
+bool sendEmailNotification(String emailMessage)
+{
+  // Set the SMTP Server Email host, port, account and password
+  smtpData.setLogin(smtpServer, smtpServerPort, emailSenderAccount, emailSenderPassword);
+
+  smtpData.setSender("URGENT - Home Gas Leak Alert", emailSenderAccount);
+
+  // Set Email priority or importance High, Normal, Low or 1 to 5 (1 is highest)
+  smtpData.setPriority("High");
+
+  // Set the subject
+  smtpData.setSubject(emailSubject);
+
+  // Set the message with HTML format
+  smtpData.setMessage(emailMessage, true);
+
+  // Add recipients
+  smtpData.addRecipient(inputMessage);
+  smtpData.setSendCallback(sendCallback);
+
+  if (!MailClient.sendMail(smtpData))
+  {
+    Serial.println("Error sending Email, " + MailClient.smtpErrorReason());
+    return false;
+  }
+
+  smtpData.empty();
+  return true;
+}
+
+
+void sendCallback(SendStatus msg)
+{
+  // Print the current status
+  Serial.println(msg.info());
+
+  // Do something when complete
+  if (msg.success())
+  {
+    Serial.println("----------------");
   }
 }
