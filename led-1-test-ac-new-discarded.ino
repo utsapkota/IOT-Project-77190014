@@ -2,11 +2,14 @@
 
 #include <Arduino.h>
 #include <WiFi.h>
+#include <Wire.h>
+#include <SPI.h>
+#include <Adafruit_BMP085.h>
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 #include <ESP32Servo.h>
-#include "SPIFFS.h"
-#include "ESP32_MailClient.h"
+#include <SPIFFS.h>
+#include <ESP32_MailClient.h>
 #include "creds.h"
 
 #define timeSeconds 3
@@ -48,11 +51,11 @@ int backdoorsledState = LOW;
 const char* PARAM_INPUT_1_TIMER = "state";
 const char* PARAM_INPUT_2_TIMER = "value";
 String timerSliderValue = "10";
-const int output_timer = 21;
-const int output_timer2 = 19;
+const int output_timer = 32;
+const int output_timer2 = 33;
 
 
-
+Adafruit_BMP085 bmp;
 
 
 AsyncWebServer server(80);
@@ -144,6 +147,47 @@ SMTPData smtpData;
 
 
 
+String readBMP180Temperature() {
+  // Read temperature as Celsius (the default)
+  float t = bmp.readTemperature();
+  // Convert temperature to Fahrenheit
+  //t = 1.8 * t + 32;
+  if (isnan(t)) {
+    Serial.println("Failed to read from BMP180 sensor!");
+    return "";
+  }
+  else {
+    Serial.println(t);
+    return String(t);
+  }
+}
+
+String readBMP180Altitude() {
+  float h = bmp.readAltitude();
+  if (isnan(h)) {
+    Serial.println("Failed to read from BMP180 sensor!");
+    return "";
+  }
+  else {
+    Serial.println(h);
+    return String(h);
+  }
+}
+
+String readBMP180Pressure() {
+  float p = bmp.readPressure() / 100.0F;
+  if (isnan(p)) {
+    Serial.println("Failed to read from BMP180 sensor!");
+    return "";
+  }
+  else {
+    Serial.println(p);
+    return String(p);
+  }
+}
+
+
+
 void notFound(AsyncWebServerRequest *request)
 {
   request->send(404, "text/plain", "Not found");
@@ -181,6 +225,14 @@ void setup() {
   // Set buzzer to LOW
   pinMode(buzzer, OUTPUT);
   digitalWrite(buzzer, LOW);
+
+
+  bool status;
+  status = bmp.begin();
+  if (!status) {
+    Serial.println("Could not find a valid BMP180 sensor, check wiring!");
+    while (1);
+  }
 
 
 
@@ -352,6 +404,19 @@ void setup() {
 
 
 
+  server.on("/climate.html", HTTP_GET, [](AsyncWebServerRequest * request) {
+    request->send(SPIFFS, "/climate.html");
+  });
+  server.on("/temperature", HTTP_GET, [](AsyncWebServerRequest * request) {
+    request->send_P(200, "text/plain", readBMP180Temperature().c_str());
+  });
+  server.on("/altitude", HTTP_GET, [](AsyncWebServerRequest * request) {
+    request->send_P(200, "text/plain", readBMP180Altitude().c_str());
+  });
+  server.on("/pressure", HTTP_GET, [](AsyncWebServerRequest * request) {
+    request->send_P(200, "text/plain", readBMP180Pressure().c_str());
+  });
+
 
 
 
@@ -414,11 +479,6 @@ void setup() {
   // Route lights
   server.on("/lights.html", HTTP_GET, [](AsyncWebServerRequest * request) {
     request->send(SPIFFS, "/lights.html", String(), false, processor);
-  });
-
-  // Route for climate
-  server.on("/climate.html", HTTP_GET, [](AsyncWebServerRequest * request) {
-    request->send(SPIFFS, "/climate.html", String(), false, processor);
   });
 
   // Route for root logout
