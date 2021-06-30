@@ -523,6 +523,7 @@ void setup() {
     int arr[3] = {0, 0, 0};
     for (int i = 0; i < parameter_numbers; i++) {
 
+<<<<<<< HEAD
       AsyncWebParameter* p = request->getParam(i);
       arr[i] = (p->value()).toInt();
     }
@@ -535,6 +536,8 @@ void setup() {
     request->send(SPIFFS, "/lights.html", String(), false, processor);
   });
 
+=======
+>>>>>>> 54fcf6ff74d9fdf6d3197fd1eec3ef6400e7745f
   // Route for root logout
   server.on("/login.html", HTTP_GET, [](AsyncWebServerRequest * request) {
     request->send(SPIFFS, "/login.html", String(), false, processor);
