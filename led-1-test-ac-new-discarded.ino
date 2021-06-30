@@ -2,11 +2,14 @@
 
 #include <Arduino.h>
 #include <WiFi.h>
+#include <Wire.h>
+#include <SPI.h>
+#include <Adafruit_BMP085.h>
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 #include <ESP32Servo.h>
-#include "SPIFFS.h"
-#include "ESP32_MailClient.h"
+#include <SPIFFS.h>
+#include <ESP32_MailClient.h>
 #include "creds.h"
 
 #define timeSeconds 3
@@ -21,7 +24,7 @@ String enableEmailChecked = "checked";
 String inputMessage2 = "true";
 
 // Default Threshold Value
-String inputMessage3 = "40";                    // Default gas_value
+String inputMessage3 = "100";                    // Default gas_value
 String lastgaslevel;
 
 const int buzzer = 18;
@@ -45,14 +48,40 @@ int backdoorsledState = LOW;
 
 
 
+
+int r, b, g;
+// Red, green, and blue pins for PWM control
+const int redPin = 13;     // 13 corresponds to GPIO13
+const int greenPin = 12;   // 12 corresponds to GPIO12
+const int bluePin = 14;    // 14 corresponds to GPIO14
+
+// Setting PWM frequency, channels and bit resolution
+const int freq_led = 5000;
+const int redChannel = 4;
+const int greenChannel = 5;
+const int blueChannel = 6;
+// Bit resolution 2^8 = 256
+const int resolution_led = 8;
+
+// Current time
+unsigned long currentTime = millis();
+// Previous time
+unsigned long previousTime = 0;
+// Define timeout time in milliseconds (example: 2000ms = 2s)
+const long timeoutTime = 2000;
+
+
+
+
+
 const char* PARAM_INPUT_1_TIMER = "state";
 const char* PARAM_INPUT_2_TIMER = "value";
 String timerSliderValue = "10";
-const int output_timer = 21;
-const int output_timer2 = 19;
+const int output_timer = 32;
+const int output_timer2 = 33;
 
 
-
+Adafruit_BMP085 bmp;
 
 
 AsyncWebServer server(80);
@@ -144,6 +173,47 @@ SMTPData smtpData;
 
 
 
+String readBMP180Temperature() {
+  // Read temperature as Celsius (the default)
+  float t = bmp.readTemperature();
+  // Convert temperature to Fahrenheit
+  //t = 1.8 * t + 32;
+  if (isnan(t)) {
+    Serial.println("Failed to read from BMP180 sensor!");
+    return "";
+  }
+  else {
+    Serial.println(t);
+    return String(t);
+  }
+}
+
+String readBMP180Altitude() {
+  float h = bmp.readAltitude();
+  if (isnan(h)) {
+    Serial.println("Failed to read from BMP180 sensor!");
+    return "";
+  }
+  else {
+    Serial.println(h);
+    return String(h);
+  }
+}
+
+String readBMP180Pressure() {
+  float p = bmp.readPressure() / 100.0F;
+  if (isnan(p)) {
+    Serial.println("Failed to read from BMP180 sensor!");
+    return "";
+  }
+  else {
+    Serial.println(p);
+    return String(p);
+  }
+}
+
+
+
 void notFound(AsyncWebServerRequest *request)
 {
   request->send(404, "text/plain", "Not found");
@@ -163,10 +233,25 @@ void setup() {
   // Serial port for debugging purposes
   Serial.begin(115200);
 
-  myservo.attach(13);
+  myservo.attach(25);
 
   pinMode(frontdoorsledPin, OUTPUT);
   pinMode(backdoorsledPin, OUTPUT);
+
+
+
+  // configure LED PWM functionalitites
+  ledcSetup(redChannel, freq_led, resolution_led);
+  ledcSetup(greenChannel, freq_led, resolution_led);
+  ledcSetup(blueChannel, freq_led, resolution_led);
+
+  // attach the channel to the GPIO to be controlled
+  ledcAttachPin(redPin, redChannel);
+  ledcAttachPin(greenPin, greenChannel);
+  ledcAttachPin(bluePin, blueChannel);
+
+
+
 
   pinMode(output_timer, OUTPUT);
   pinMode(output_timer2, OUTPUT);
@@ -181,6 +266,14 @@ void setup() {
   // Set buzzer to LOW
   pinMode(buzzer, OUTPUT);
   digitalWrite(buzzer, LOW);
+
+
+  bool status;
+  status = bmp.begin();
+  if (!status) {
+    Serial.println("Could not find a valid BMP180 sensor, check wiring!");
+    while (1);
+  }
 
 
 
@@ -352,6 +445,19 @@ void setup() {
 
 
 
+  server.on("/climate.html", HTTP_GET, [](AsyncWebServerRequest * request) {
+    request->send(SPIFFS, "/climate.html");
+  });
+  server.on("/temperature", HTTP_GET, [](AsyncWebServerRequest * request) {
+    request->send_P(200, "text/plain", readBMP180Temperature().c_str());
+  });
+  server.on("/altitude", HTTP_GET, [](AsyncWebServerRequest * request) {
+    request->send_P(200, "text/plain", readBMP180Altitude().c_str());
+  });
+  server.on("/pressure", HTTP_GET, [](AsyncWebServerRequest * request) {
+    request->send_P(200, "text/plain", readBMP180Pressure().c_str());
+  });
+
 
 
 
@@ -413,12 +519,20 @@ void setup() {
 
   // Route lights
   server.on("/lights.html", HTTP_GET, [](AsyncWebServerRequest * request) {
-    request->send(SPIFFS, "/lights.html", String(), false, processor);
-  });
+    int parameter_numbers = request->params();
+    int arr[3] = {0, 0, 0};
+    for (int i = 0; i < parameter_numbers; i++) {
 
-  // Route for climate
-  server.on("/climate.html", HTTP_GET, [](AsyncWebServerRequest * request) {
-    request->send(SPIFFS, "/climate.html", String(), false, processor);
+      AsyncWebParameter* p = request->getParam(i);
+      arr[i] = (p->value()).toInt();
+    }
+    Serial.println(arr[0]);
+    Serial.println(arr[1]);
+    Serial.println(arr[2]);
+    r = arr[0];
+    g = arr[1];
+    b = arr[2];
+    request->send(SPIFFS, "/lights.html", String(), false, processor);
   });
 
   // Route for root logout
@@ -436,6 +550,10 @@ void loop() {
   digitalWrite(frontdoorsledPin, frontdoorsledState);
   digitalWrite(backdoorsledPin, backdoorsledState);
   digitalWrite(output_timer2, LOW);
+
+  ledcWrite(redChannel, r);
+  ledcWrite(greenChannel, g);
+  ledcWrite(blueChannel, b);
 
   // Current time
   now = millis();

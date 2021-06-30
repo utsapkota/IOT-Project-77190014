@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon" href="data:,">
     <link rel="stylesheet" type="text/css" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jscolor/2.0.4/jscolor.min.js"></script>
     <meta http-equiv="content-type" content="text/html;charset=UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
@@ -113,7 +114,7 @@
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="climate.html">
+                            <a class="nav-link" href="climate.html" target="_blank">
                                 <svg class="icon-sprite">
                                     <use xlink:href="icons-sprite.svg#thermometer" />
                                 </svg> <span>Climate</span>
@@ -135,9 +136,7 @@
                                     <use xlink:href="icons-sprite.svg#bulb-eco" />
                                 </svg>
                                 <h5>Festival Lights</h5>
-                                <label class="switch ml-auto">
-                                    <input type="checkbox" id="switch-light-6">
-                                </label>
+                                
                             </div>
                             <!-- Light switch END -->
                             <hr class="my-0">
@@ -148,14 +147,15 @@
                                     <p class="ml-auto mb-0 text-success">OK</p>
                                 </li>
                                 <li class="list-group-item pt-0">
-                                    <p class="specs">Power Consumption</p>
-                                    <p class="ml-auto mb-0">15W</p>
-                                </li>
-                                <li class="list-group-item pt-0 pb-4">
-                                    <p class="specs">Voltage range</p>
-                                    <p class="ml-auto mb-0">110-130V</p>
+                                    <p class="specs"><a class="btn btn-secondary" href="#" id="change_color" role="button">Change Color</a></p>
+                                    <p class="ml-auto mb-0"><input class="jscolor {onFineChange:'update(this)'}" id="rgb"></p>
                                 </li>
                             </ul>
+                            <script>
+    function update(picker) 
+    {document.getElementById('rgb').innerHTML = Math.round(picker.rgb[0]) + ', ' +  Math.round(picker.rgb[1]) + ', ' + Math.round(picker.rgb[2]);
+document.getElementById("change_color").href="?r" + "=" + Math.round(picker.rgb[0]) + "&" + "g" + "=" + Math.round(picker.rgb[1]) + "&" + "b" + "=" + Math.round(picker.rgb[2])};
+</script>
                             <!-- Bulb details END -->
                         </div>
                     </div>
