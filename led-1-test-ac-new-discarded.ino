@@ -71,6 +71,15 @@ unsigned long previousTime = 0;
 const long timeoutTime = 2000;
 
 
+//PWM Slider
+const int output = 4;
+String sliderValue = "0";
+// setting PWM properties LED
+const int freq = 5000;
+const int ledChannel_bedroom = 7;
+const int resolution = 8;
+const char* PARAM_INPUT = "value";
+
 
 
 
@@ -125,6 +134,9 @@ String processor(const String& var) {
     String buttons = "";
     buttons += "<label class=\"switch ml-auto\"><input type=\"checkbox\" id=\"switch-house-lock\" onchange=\"toggleSecurity(this)\"></label>";
     return buttons;
+  }
+  if (var == "SLIDERVALUE"){
+    return sliderValue;
   }
   if (var == "GASVALUE")
   {
@@ -250,6 +262,12 @@ void setup() {
   ledcAttachPin(greenPin, greenChannel);
   ledcAttachPin(bluePin, blueChannel);
 
+  // configure LED PWM functionalitites slider
+  ledcSetup(ledChannel_bedroom, freq, resolution);
+  // attach the channel to the GPIO to be controlled
+  ledcAttachPin(output, ledChannel_bedroom);
+  ledcWrite(ledChannel_bedroom, sliderValue.toInt());
+
 
 
 
@@ -372,6 +390,9 @@ void setup() {
     request->send(200, "text/plain", "OK");
   });
 
+
+  
+
   // Send a GET request to <ESP_IP>/slider?value=<inputMessage>
   server.on("/slider", HTTP_GET, [] (AsyncWebServerRequest * request) {
     String inputMessage;
@@ -389,6 +410,22 @@ void setup() {
 
 
 
+
+  // Send a GET request to <ESP_IP>/slider?value=<inputMessage>
+  server.on("/bedroomslider", HTTP_GET, [] (AsyncWebServerRequest * request) {
+    String inputMessage;
+    // GET input1 value on <ESP_IP>/slider?value=<inputMessage>
+    if (request->hasParam(PARAM_INPUT)) {
+      inputMessage = request->getParam(PARAM_INPUT)->value();
+      sliderValue = inputMessage;
+      ledcWrite(ledChannel_bedroom, sliderValue.toInt());
+    }
+    else {
+      inputMessage = "No message sent";
+    }
+    Serial.println(inputMessage);
+    request->send(200, "text/plain", "OK");
+  });
 
 
 
@@ -523,7 +560,7 @@ void setup() {
     int arr[3] = {0, 0, 0};
     for (int i = 0; i < parameter_numbers; i++) {
 
-<<<<<<< HEAD
+//<<<<<<< HEAD
       AsyncWebParameter* p = request->getParam(i);
       arr[i] = (p->value()).toInt();
     }
@@ -536,8 +573,8 @@ void setup() {
     request->send(SPIFFS, "/lights.html", String(), false, processor);
   });
 
-=======
->>>>>>> 54fcf6ff74d9fdf6d3197fd1eec3ef6400e7745f
+//=======
+//>>>>>>> 54fcf6ff74d9fdf6d3197fd1eec3ef6400e7745f
   // Route for root logout
   server.on("/login.html", HTTP_GET, [](AsyncWebServerRequest * request) {
     request->send(SPIFFS, "/login.html", String(), false, processor);
