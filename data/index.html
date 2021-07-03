@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>ESP32 Web Server</title>
+  <title>Macrobiot &mdash; Home</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" href="data:,">
   <link rel="stylesheet" type="text/css" href="style.css">
@@ -77,22 +77,20 @@
       <a class="navbar-brand px-lg-3 px-1 mr-0" href="#">Welcome To Smart Home Dashboard</a>
       <div class="ml-auto">
         <div class="navbar-nav flex-row navbar-/icons">
-          <div class="nav-item">
-            <button id="alerts-toggler" class="btn btn-link nav-link" title="Alerts" type="button" data-alerts="3" data-toggle="modal" data-target="#alertsModal">
-              <svg class="icon-sprite">
-                <use xlink:href="/icons-sprite.svg#alert"/>
-                <svg class="text-danger"><use class="icon-dot" xlink:href="/icons-sprite.svg#icon-dot"/></svg>
-              </svg>
-            </button>
-          </div>
+          
           <div id="user-menu" class="nav-item dropdown">
             <button class="btn btn-link nav-link dropdown-toggle" title="User" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
               <svg class="icon-sprite"><use xlink:href="/icons-sprite.svg#user"/></svg>
             </button>
             <div class="dropdown-menu dropdown-menu-right">
-              <a class="dropdown-item" href="profile.html">Profile</a>
-              <div class="dropdown-divider"></div>
-              <a class="dropdown-item" href="login.html">Logout</a>
+
+              <a class = "dropdown-item" href="#" onclick="logoutButton()">Logout</a>
+              <script type="text/javascript">function logoutButton() {
+  var xhr = new XMLHttpRequest();
+  xhr.open("GET", "/logout", true);
+  xhr.send();
+  setTimeout(function(){ window.open("/logged-out","_self"); }, 1000);
+}</script>
             </div>
           </div>
           <div class="nav-item d-lg-none">
@@ -142,7 +140,7 @@
             <div class="row">
               <div class="col-sm-12">
                 <div class="card p-2 mb-4">
-                  <img src="symbiot4.svg" width="140" height="20" alt="SYMBIOT 4" class="mx-auto">
+                  <img src="macrobiot4.png" width="140" height="20" alt="MACROBIOT 4" class="mx-auto">
                 </div>
               </div>
             </div>

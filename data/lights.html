@@ -2,7 +2,7 @@
 <html lang="en">
 
 <head>
-    <title>ESP32 Web Server</title>
+    <title>Macrobiot &mdash; Lights</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon" href="data:,">
     <link rel="stylesheet" type="text/css" href="style.css">
@@ -163,7 +163,7 @@ document.getElementById("change_color").href="?r" + "=" + Math.round(picker.rgb[
 
 
 
-                    <div class="col-sm-12 col-md-6 col-xl-6">
+            <div class="col-sm-12 col-md-6 col-xl-6">
                 <!-- Light unit START -->
                 <div class="card" data-unit="switch-light-1">
                   <!-- Light switch START -->
@@ -173,11 +173,14 @@ document.getElementById("change_color").href="?r" + "=" + Math.round(picker.rgb[
                       <use xlink:href="icons-sprite.svg#bulb-eco"/>
                     </svg>
                     <h5>Bedroom</h5>
+
                   </div>
                   <hr class="my-0">
-</br>
-<div class="col-sm-12 col-md-6 col-xl-12">
-  <p><input type="range" onchange="updatebedroomSliderPWM(this)" id="dimmer-light-1" min="0" max="100" value="%SLIDERVALUE%" step="1" class="slider"></p>
+
+<li class="list-group-item">
+    <br/>
+  <input type="range" onchange="updatebedroomSliderPWM(this)" id="dimmer-light-1" min="0" max="100" value="%SLIDERVALUE%" step="1" class="slider">
+</li>
 <script>
 function updatebedroomSliderPWM(element) {
   var bedroomsliderValue = document.getElementById("dimmer-light-1").value * 2.55;
@@ -191,14 +194,14 @@ function updatebedroomSliderPWM(element) {
 <ul class="list-group borderless px-1" data-rangeslider="dimmer-light-1">
                     <li class="list-group-item">
                       <p class="specs">Dim</p>
-                      <p class="ml-auto mb-0"><span class="range-output">100</span>%</p>
+                      <p class="ml-auto mb-0"><span class="range-output">100</span>&#37;</p>
                     </li>
                   </ul>
-</div>
-                  <!-- Light switch END -->
-                </div>
+         <!-- Dimmer control - range slider END -->
+            </div>
                 <!-- Light unit END -->
               </div>
+                  
               </div>
                 </div>
                 <!-- Interior lights END -->

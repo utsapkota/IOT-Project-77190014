@@ -12,6 +12,9 @@
 #include <ESP32_MailClient.h>
 #include "creds.h"
 
+const char* http_username = "admin";
+const char* http_password = "admin";
+
 #define timeSeconds 3
 #define emailSenderAccount    "utsav17fun@gmail.com"    // Sender email address
 #define emailSenderPassword   "uSAP199742"            // Sender email password
@@ -135,7 +138,7 @@ String processor(const String& var) {
     buttons += "<label class=\"switch ml-auto\"><input type=\"checkbox\" id=\"switch-house-lock\" onchange=\"toggleSecurity(this)\"></label>";
     return buttons;
   }
-  if (var == "SLIDERVALUE"){
+  if (var == "SLIDERVALUE") {
     return sliderValue;
   }
   if (var == "GASVALUE")
@@ -228,7 +231,8 @@ String readBMP180Pressure() {
 
 void notFound(AsyncWebServerRequest *request)
 {
-  request->send(404, "text/plain", "Not found");
+  //request->send(404, "text/plain", "Not found");
+  request->send(SPIFFS, "/404.html", String(), false);
 }
 
 
@@ -239,6 +243,7 @@ void IRAM_ATTR detectsMovement() {
   startTimer = true;
   lastTrigger = millis();
 }
+
 
 
 void setup() {
@@ -314,6 +319,8 @@ void setup() {
 
 
   server.on("/updateopen", HTTP_GET, [](AsyncWebServerRequest * request) {
+    if(!request->authenticate(http_username, http_password))
+      return request->requestAuthentication();
 
     for (pos = 0; pos <= 150; pos += 5) { // goes from 0 degrees to 180 degrees
       // in steps of 1 degree
@@ -326,6 +333,8 @@ void setup() {
   });
 
   server.on("/updateclose", HTTP_GET, [](AsyncWebServerRequest * request) {
+    if(!request->authenticate(http_username, http_password))
+      return request->requestAuthentication();
 
     for (pos = 150; pos >= 0; pos -= 5) { // goes from 180 degrees to 0 degrees
       myservo.write(pos);    // tell servo to go to position in variable 'pos'
@@ -348,6 +357,8 @@ void setup() {
 
   // Send a GET request to <ESP_IP>/update?state=<inputMessage>
   server.on("/updatefrontdoors", HTTP_GET, [] (AsyncWebServerRequest * request) {
+    if(!request->authenticate(http_username, http_password))
+      return request->requestAuthentication();
     String inputParam;
 
     // GET input1 value on <ESP_IP>/update?state=<inputMessage>
@@ -360,6 +371,8 @@ void setup() {
 
   // Send a GET request to <ESP_IP>/update?state=<inputMessage>
   server.on("/updatebackdoors", HTTP_GET, [] (AsyncWebServerRequest * request) {
+    if(!request->authenticate(http_username, http_password))
+      return request->requestAuthentication();
     String inputParam;
 
     // GET input1 value on <ESP_IP>/update?state=<inputMessage>
@@ -377,6 +390,8 @@ void setup() {
 
   // Send a GET request to <ESP_IP>/update?state=<inputMessage>
   server.on("/update", HTTP_GET, [] (AsyncWebServerRequest * request) {
+    if(!request->authenticate(http_username, http_password))
+      return request->requestAuthentication();
     String inputMessage;
     // GET input1 value on <ESP_IP>/update?state=<inputMessage>
     if (request->hasParam(PARAM_INPUT_1_TIMER)) {
@@ -395,6 +410,8 @@ void setup() {
 
   // Send a GET request to <ESP_IP>/slider?value=<inputMessage>
   server.on("/slider", HTTP_GET, [] (AsyncWebServerRequest * request) {
+    if(!request->authenticate(http_username, http_password))
+      return request->requestAuthentication();
     String inputMessage;
     // GET input1 value on <ESP_IP>/slider?value=<inputMessage>
     if (request->hasParam(PARAM_INPUT_2_TIMER)) {
@@ -413,6 +430,8 @@ void setup() {
 
   // Send a GET request to <ESP_IP>/slider?value=<inputMessage>
   server.on("/bedroomslider", HTTP_GET, [] (AsyncWebServerRequest * request) {
+    if(!request->authenticate(http_username, http_password))
+      return request->requestAuthentication();
     String inputMessage;
     // GET input1 value on <ESP_IP>/slider?value=<inputMessage>
     if (request->hasParam(PARAM_INPUT)) {
@@ -432,6 +451,8 @@ void setup() {
 
   // Send a GET request to <ESP_IP>/update?state=<inputMessage>
   server.on("/updatesecurity", HTTP_GET, [] (AsyncWebServerRequest * request) {
+    if(!request->authenticate(http_username, http_password))
+      return request->requestAuthentication();
     String inputParam;
 
     // GET input1 value on <ESP_IP>/update?state=<inputMessage>
@@ -452,6 +473,8 @@ void setup() {
 
   // Receive an HTTP GET request at <ESP_IP>/get?email_input=<inputMessage>&enable_email_input=<inputMessage2>&threshold_input=<inputMessage3>
   server.on("/get", HTTP_GET, [] (AsyncWebServerRequest * request) {
+    if(!request->authenticate(http_username, http_password))
+      return request->requestAuthentication();
     // GET email_input value on <ESP_IP>/get?email_input=<inputMessage>
     if (request->hasParam(PARAM_INPUT_1_EMAIL)) {
       inputMessage = request->getParam(PARAM_INPUT_1_EMAIL)->value();
@@ -483,29 +506,49 @@ void setup() {
 
 
   server.on("/climate.html", HTTP_GET, [](AsyncWebServerRequest * request) {
+    if(!request->authenticate(http_username, http_password))
+      return request->requestAuthentication();
     request->send(SPIFFS, "/climate.html");
   });
   server.on("/temperature", HTTP_GET, [](AsyncWebServerRequest * request) {
+    if(!request->authenticate(http_username, http_password))
+      return request->requestAuthentication();
     request->send_P(200, "text/plain", readBMP180Temperature().c_str());
   });
   server.on("/altitude", HTTP_GET, [](AsyncWebServerRequest * request) {
+    if(!request->authenticate(http_username, http_password))
+      return request->requestAuthentication();
     request->send_P(200, "text/plain", readBMP180Altitude().c_str());
   });
   server.on("/pressure", HTTP_GET, [](AsyncWebServerRequest * request) {
+    if(!request->authenticate(http_username, http_password))
+      return request->requestAuthentication();
     request->send_P(200, "text/plain", readBMP180Pressure().c_str());
   });
 
 
 
 
+  // Route for logout
+server.on("/logout", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(401);
+  });
+  // Route for logout page
+  server.on("/logged-out", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(SPIFFS, "/401.html", String(), false);
+  });
 
   // Route for index
   server.on("/", HTTP_GET, [](AsyncWebServerRequest * request) {
+    if(!request->authenticate(http_username, http_password))
+      return request->requestAuthentication();
     request->send(SPIFFS, "/index.html", String(), false, processor);
   });
 
   // Route for index
   server.on("/index.html", HTTP_GET, [](AsyncWebServerRequest * request) {
+    if(!request->authenticate(http_username, http_password))
+      return request->requestAuthentication();
     request->send(SPIFFS, "/index.html", String(), false, processor);
   });
 
@@ -513,11 +556,13 @@ void setup() {
     request->send(SPIFFS, "/style.css", "text/css");
   });
 
-  server.on("/symbiot4.svg", HTTP_GET, [](AsyncWebServerRequest * request) {
-    request->send(SPIFFS, "/symbiot4.svg", "image/svg+xml");
+  server.on("/macrobiot4.png", HTTP_GET, [](AsyncWebServerRequest * request) {
+    request->send(SPIFFS, "/macrobiot4.png", "image/png");
   });
 
   server.on("/icons-sprite.svg", HTTP_GET, [](AsyncWebServerRequest * request) {
+    if(!request->authenticate(http_username, http_password))
+      return request->requestAuthentication();
     request->send(SPIFFS, "/icons-sprite.svg", "image/svg+xml");
   });
 
@@ -526,36 +571,52 @@ void setup() {
   });
 
   server.on("/iot-functions.min.js", HTTP_GET, [](AsyncWebServerRequest * request) {
+    if(!request->authenticate(http_username, http_password))
+      return request->requestAuthentication();
     request->send(SPIFFS, "/iot-functions.min.js", "text/javascript");
   });
 
   server.on("/iot-range-slider.min.js", HTTP_GET, [](AsyncWebServerRequest * request) {
+    if(!request->authenticate(http_username, http_password))
+      return request->requestAuthentication();
     request->send(SPIFFS, "/iot-range-slider.min.js", "text/javascript");
   });
 
   server.on("/iot-timer.min.js", HTTP_GET, [](AsyncWebServerRequest * request) {
+    if(!request->authenticate(http_username, http_password))
+      return request->requestAuthentication();
     request->send(SPIFFS, "/iot-timer.min.js", "text/javascript");
   });
 
   server.on("/chartist.min.js", HTTP_GET, [](AsyncWebServerRequest * request) {
+    if(!request->authenticate(http_username, http_password))
+      return request->requestAuthentication();
     request->send(SPIFFS, "/chartist.min.js", "text/javascripts");
   });
 
   server.on("/chartist-legend.min.js", HTTP_GET, [](AsyncWebServerRequest * request) {
+    if(!request->authenticate(http_username, http_password))
+      return request->requestAuthentication();
     request->send(SPIFFS, "/chartist-legend.min.js", "text/javascript");
   });
 
   server.on("/svg4everybody.min.js", HTTP_GET, [](AsyncWebServerRequest * request) {
+    if(!request->authenticate(http_username, http_password))
+      return request->requestAuthentication();
     request->send(SPIFFS, "/svg4everybody.min.js", "text/javascript");
   });
 
   // Route for appliances
   server.on("/appliances.html", HTTP_GET, [](AsyncWebServerRequest * request) {
+    if(!request->authenticate(http_username, http_password))
+      return request->requestAuthentication();
     request->send(SPIFFS, "/appliances.html", String(), false, processor);
   });
 
   // Route lights
   server.on("/lights.html", HTTP_GET, [](AsyncWebServerRequest * request) {
+    if(!request->authenticate(http_username, http_password))
+      return request->requestAuthentication();
     int parameter_numbers = request->params();
     int arr[3] = {0, 0, 0};
     for (int i = 0; i < parameter_numbers; i++) {
@@ -575,11 +636,6 @@ void setup() {
 
 //=======
 //>>>>>>> 54fcf6ff74d9fdf6d3197fd1eec3ef6400e7745f
-  // Route for root logout
-  server.on("/login.html", HTTP_GET, [](AsyncWebServerRequest * request) {
-    request->send(SPIFFS, "/login.html", String(), false, processor);
-  });
-
 
   server.onNotFound(notFound);
   // Start server
