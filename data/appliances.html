@@ -230,9 +230,14 @@ function updateSliderTimer(element) {
                       <use xlink:href="icons-sprite.svg#bulb-eco"/>
                     </svg>
                     <h5>Garage Flood Light</h5>
-                    <label class="switch ml-auto">
-                      <input type="checkbox" id="switch-light-8">
-                    </label>
+                    %FLASH%
+                    <script>function toggleFlash(element) {
+  var xhr = new XMLHttpRequest();
+  if(element.checked){ xhr.open("GET", "/updateflash?state=1", true); }
+  else { xhr.open("GET", "/updateflash?state=0", true); }
+  xhr.send();
+}
+</script>
                   </div>
                   <!-- Light switch END -->
                   <hr class="my-0">

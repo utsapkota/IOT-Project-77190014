@@ -45,9 +45,11 @@ Servo myservo;
 // Set LED GPIO
 const int frontdoorsledPin = 2;
 const int backdoorsledPin = 23;
+const int flashPin = 15;
 const char* PARAM_INPUT_1 = "state";
 int frontdoorsledState = LOW;
 int backdoorsledState = LOW;
+int flashState = LOW;
 
 
 
@@ -107,6 +109,11 @@ String processor(const String& var) {
   if (var == "BACKDOOR") {
     String buttons = "";
     buttons += "<label class=\"switch ml-auto\"><input type=\"checkbox\" id=\"switch-light-7\" onchange=\"toggleBackdoor(this)\"></label>";
+    return buttons;
+  }
+  if (var == "FLASH") {
+    String buttons = "";
+    buttons += "<label class=\"switch ml-auto\"><input type=\"checkbox\" id=\"switch-light-8\" onchange=\"toggleFlash(this)\"></label>";
     return buttons;
   }
   if (var == "LOUNGEBUTTON") {
@@ -254,6 +261,7 @@ void setup() {
 
   pinMode(frontdoorsledPin, OUTPUT);
   pinMode(backdoorsledPin, OUTPUT);
+  pinMode(flashPin, OUTPUT);
 
 
 
@@ -383,6 +391,19 @@ void setup() {
     request->send(200, "text/plain", "OK");
   });
 
+// Send a GET request to <ESP_IP>/update?state=<inputMessage>
+  server.on("/updateflash", HTTP_GET, [] (AsyncWebServerRequest * request) {
+    if(!request->authenticate(http_username, http_password))
+      return request->requestAuthentication();
+    String inputParam;
+
+    // GET input1 value on <ESP_IP>/update?state=<inputMessage>
+    if (request->hasParam(PARAM_INPUT_1)) {
+      inputParam = PARAM_INPUT_1;
+      flashState = !flashState;
+    }
+    request->send(200, "text/plain", "OK");
+  });
 
 
 
@@ -645,6 +666,7 @@ server.on("/logout", HTTP_GET, [](AsyncWebServerRequest *request){
 void loop() {
   digitalWrite(frontdoorsledPin, frontdoorsledState);
   digitalWrite(backdoorsledPin, backdoorsledState);
+  digitalWrite(flashPin, flashState);
   digitalWrite(output_timer2, LOW);
 
   ledcWrite(redChannel, r);
